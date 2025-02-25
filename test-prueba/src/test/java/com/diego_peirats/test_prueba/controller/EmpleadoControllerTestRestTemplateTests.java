@@ -1,0 +1,104 @@
+package com.diego_peirats.test_prueba.controller;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+
+import com.diego_peirats.test_prueba.model.Empleado;
+
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+public class EmpleadoControllerTestRestTemplateTests {
+	
+	@Autowired
+	private TestRestTemplate testRestTemplate;
+	
+	@Test
+	@Order(0)
+	void testGuardarEmpleado() {
+		Empleado emp = new Empleado(1L, "perico", "palotes", "peri@palo.com");
+		ResponseEntity<Empleado> respuesta = testRestTemplate
+				.postForEntity("http://localhost:8080/emleados/save", emp, Empleado.class);
+		
+		Assertions.assertEquals(HttpStatus.CREATED, respuesta.getStatusCode());
+		Assertions.assertEquals(MediaType.APPLICATION_JSON, respuesta.getHeaders().getContentType());
+		
+		Empleado empCreado = respuesta.getBody();
+		Assertions.assertNotNull(empCreado);
+		
+		Assertions.assertEquals(1L, empCreado.getId());
+		Assertions.assertEquals("perico", empCreado.getNombre());
+	}
+	
+	 @Test
+	    @Order(2)
+	    void testListarEmpleados(){
+	        ResponseEntity<Empleado[]> respuesta = testRestTemplate.getForEntity("http://localhost:8080/api/empleados",Empleado[].class);
+	        List<Empleado> empleados = Arrays.asList(respuesta.getBody());
+
+	        Assertions.assertEquals(HttpStatus.OK,respuesta.getStatusCode());
+	        Assertions.assertEquals(MediaType.APPLICATION_JSON,respuesta.getHeaders().getContentType());
+
+	        Assertions.assertEquals(1,empleados.size());
+	        Assertions.assertEquals(1L,empleados.get(0).getId());
+	        Assertions.assertEquals("Christian",empleados.get(0).getNombre());
+	        Assertions.assertEquals("Ramirez",empleados.get(0).getApellido());
+	        Assertions.assertEquals("c1@gmail.com",empleados.get(0).getEmail());
+	    }
+
+	    @Test
+	    @Order(3)
+	    void testObtenerEmpleado(){
+	        ResponseEntity<Empleado> respuesta = testRestTemplate.getForEntity("http://localhost:8080/api/empleados/1",Empleado.class);
+	        Empleado empleado = respuesta.getBody();
+
+	        Assertions.assertEquals(HttpStatus.OK,respuesta.getStatusCode());
+	        Assertions.assertEquals(MediaType.APPLICATION_JSON,respuesta.getHeaders().getContentType());
+
+	        Assertions.assertNotNull(empleado);
+	        Assertions.assertEquals(1L,empleado.getId());
+	        Assertions.assertEquals("Christian",empleado.getNombre());
+	        Assertions.assertEquals("Ramirez",empleado.getApellido());
+	        Assertions.assertEquals("c1@gmail.com",empleado.getEmail());
+	    }
+
+	    @Test
+	    @Order(4)
+	    void testEliminarEmpleado(){
+	        ResponseEntity<Empleado[]> respuesta = testRestTemplate.getForEntity("http://localhost:8080/api/empleados",Empleado[].class);
+	        List<Empleado> empleados = Arrays.asList(respuesta.getBody());
+	        Assertions.assertEquals(1,empleados.size());
+
+	        Map<String,Long> pathVariables = new HashMap<>();
+	        pathVariables.put("id",1L);
+	        ResponseEntity<Void> exchange = testRestTemplate.exchange("http://localhost:8080/api/empleados/{id}", HttpMethod.DELETE,null,Void.class,pathVariables);
+
+	        Assertions.assertEquals(HttpStatus.OK,exchange.getStatusCode());
+	        Assertions.assertFalse(exchange.hasBody());
+
+	        respuesta = testRestTemplate.getForEntity("http://localhost:8080/api/empleados",Empleado[].class);
+	        empleados = Arrays.asList(respuesta.getBody());
+	        Assertions.assertEquals(0,empleados.size());
+
+	        ResponseEntity<Empleado> respuestaDetalle = testRestTemplate.getForEntity("http://localhost:8080/api/empleados/2",Empleado.class);
+	        Assertions.assertEquals(HttpStatus.NOT_FOUND,respuestaDetalle.getStatusCode());
+	        Assertions.assertFalse(respuestaDetalle.hasBody());
+	    }
+	
+	
+
+}
